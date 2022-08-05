@@ -24,25 +24,33 @@ public class MongoConfig   {
     @Value("${truststore.pwd}")
     private String trustStorePwd;
 
+    @Value("${mongodb.atlas}")
+    private boolean atlas;
+
     @Bean
     public MongoClient mongo() {
 
         ConnectionString connectionString = new ConnectionString(uri);
 
-        SSLFactory sslFactory = SSLFactory.builder()
-                .withTrustMaterial(Paths.get(trustStorePath), trustStorePwd.toCharArray())
-                .build();
+            MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
+                    .applyConnectionString(connectionString)
+                    .applyToSslSettings(builder -> {
 
-        SSLContext sslContext = sslFactory.getSslContext();
-        MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
-                .applyConnectionString(connectionString)
-                .applyToSslSettings(builder -> {
-                    builder.context(sslContext);
-                    builder.invalidHostNameAllowed(true);
-                    builder.enabled(true);
+                        if (!atlas) {
+                            // Use SSLContext if a trustStore has been provided
+                            if (!trustStorePath.isEmpty()) {
+                                SSLFactory sslFactory = SSLFactory.builder()
+                                        .withTrustMaterial(Paths.get(trustStorePath), trustStorePwd.toCharArray())
+                                        .build();
+                                SSLContext sslContext = sslFactory.getSslContext();
+                                builder.context(sslContext);
+                                builder.invalidHostNameAllowed(true);
+                            }
+                        }
+                        builder.enabled(true);
+                    })
+                    .build();
 
-                })
-                .build();
 
         return MongoClients.create(mongoClientSettings);
     }
