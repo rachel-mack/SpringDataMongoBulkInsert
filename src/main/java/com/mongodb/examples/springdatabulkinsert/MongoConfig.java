@@ -48,7 +48,6 @@ public class MongoConfig   {
                             }
                         }
                         builder.enabled(true);
-                        builder.enabled(true);
                     })
                     .build();
 
